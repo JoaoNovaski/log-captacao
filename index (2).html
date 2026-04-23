@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Log de captação</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --border: rgba(0,0,0,0.12);
+    --text: #1a1a18; --text2: #6b6b67; --text3: #9c9a92;
+    --radius-md: 8px; --radius-lg: 12px;
+    --green-bg: #EAF3DE; --green-border: #639922; --green-text: #3B6D11;
+    --amber-bg: #FAEEDA; --amber-border: #BA7517; --amber-text: #854F0B;
+    --blue-bg: #E6F1FB; --blue-border: #378ADD; --blue-text: #185FA5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --bg2: #2a2a28; --border: rgba(255,255,255,0.1);
+      --text: #e8e6de; --text2: #9c9a92; --text3: #6b6b67;
+      --green-bg: #27500A; --green-border: #639922; --green-text: #C0DD97;
+      --amber-bg: #633806; --amber-border: #BA7517; --amber-text: #FAC775;
+      --blue-bg: #0C447C; --blue-border: #378ADD; --blue-text: #B5D4F4;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; padding: 1rem; }
+  .app { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: var(--text2); margin-bottom: 1.5rem; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 12px; }
+  .field { margin-bottom: 12px; }
+  .field label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 8px 10px; font-size: 14px; border: 0.5px solid var(--border);
+    border-radius: var(--radius-md); background: var(--bg); color: var(--text); outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue-border); }
+  .field textarea { resize: none; height: 56px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .mode-btn {
+    border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 10px 8px;
+    font-size: 12px; font-weight: 600; cursor: pointer; text-align: center;
+    background: var(--bg); color: var(--text2); line-height: 1.5;
+  }
+  .mode-btn span { display: block; font-size: 10px; font-weight: 400; color: var(--text3); margin-bottom: 2px; }
+  .mode-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .video-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 10px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .card-label { font-size: 12px; font-weight: 600; background: var(--bg2); color: var(--text2); padding: 3px 10px; border-radius: 20px; }
+  .del-btn { font-size: 20px; background: none; border: none; color: var(--text3); cursor: pointer; line-height: 1; }
+  .cena-block { border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 10px; margin-top: 10px; background: var(--bg2); }
+  .cena-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .cena-lbl { font-size: 11px; font-weight: 600; color: var(--text2); }
+  .cena-del { font-size: 16px; background: none; border: none; color: var(--text3); cursor: pointer; }
+  .add-cena-btn { width: 100%; border: 0.5px dashed var(--border); border-radius: var(--radius-md); padding: 7px; font-size: 12px; color: var(--text2); background: transparent; cursor: pointer; margin-top: 8px; }
+  .status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .s-btn { border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 8px 0; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; background: var(--bg); color: var(--text2); }
+  .s-btn.ok   { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+  .s-btn.pend { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber-text); }
+  .flags-lbl { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .flags-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .flag-chip { font-size: 12px; border: 0.5px solid var(--border); border-radius: 20px; padding: 4px 10px; cursor: pointer; background: var(--bg); color: var(--text2); }
+  .flag-chip.active { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue-text); }
+  .add-btn { width: 100%; border: 0.5px dashed var(--border); border-radius: var(--radius-md); padding: 10px; font-size: 14px; color: var(--text2); background: transparent; cursor: pointer; margin-bottom: 1.25rem; }
+  .submit-btn { width: 100%; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius-md); padding: 13px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 2rem; }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin-bottom: 1.5rem; }
+  .section-title { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .log-group { margin-bottom: 16px; }
+  .log-meta { font-size: 11px; color: var(--text3); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .mode-tag { font-size: 10px; padding: 2px 6px; border-radius: 20px; background: var(--bg2); color: var(--text3); border: 0.5px solid var(--border); }
+  .log-card { background: var(--bg2); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 6px; }
+  .log-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .log-nome { font-size: 13px; font-weight: 600; }
+  .log-range { font-size: 12px; color: var(--text2); }
+  .log-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .log-flag { font-size: 11px; background: var(--blue-bg); color: var(--blue-text); padding: 2px 8px; border-radius: 20px; }
+  .log-obs { font-size: 12px; color: var(--text3); margin-top: 4px; font-style: italic; }
+  .log-cena { font-size: 12px; color: var(--text2); padding: 4px 0; border-top: 0.5px solid var(--border); margin-top: 4px; }
+  .pill-ok   { font-size: 11px; background: var(--green-bg); color: var(--green-text); padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .pill-pend { font-size: 11px; background: var(--amber-bg); color: var(--amber-text); padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .empty { font-size: 13px; color: var(--text3); text-align: center; padding: 1rem 0; }
+</style>
+</head>
+<body>
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-box">
+    <h2>Log de captação</h2>
+    <p>Digite o PIN para acessar</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-grid">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key" onclick="pinClear()" style="font-size:13px;">⌫</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key" onclick="pinSubmit()" style="font-size:13px;">OK</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<div class="app">
+  <h1>Log de captação</h1>
+  <p class="subtitle">Registre os vídeos e takes da sessão</p>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-rapido" onclick="setMode('rapido')">
+      <span>MODO RÁPIDO</span>Range de takes por vídeo
+    </button>
+    <button class="mode-btn" id="btn-detalhado" onclick="setMode('detalhado')">
+      <span>MODO DETALHADO</span>Cenas e takes individuais
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label>Projeto / cliente</label>
+      <select id="projeto"><option value="">Selecione...</option></select>
+    </div>
+    <div class="field">
+      <label>Responsável</label>
+      <input type="text" id="responsavel" placeholder="Nome de quem está registrando"/>
+    </div>
+  </div>
+
+  <div id="videos-container"></div>
+  <button class="add-btn" onclick="addVideo()">+ adicionar vídeo</button>
+  <button class="submit-btn" id="submit-btn" onclick="salvar()">Salvar registro</button>
+
+  <hr class="divider"/>
+  <div class="section-title">Registros desta sessão</div>
+  <div id="log-container"><p class="empty">Nenhum registro ainda</p></div>
+
+  <hr class="divider"/>
+  <div class="section-title">Organizar Drive</div>
+  <div class="card" id="drive-section">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+      Cole o link da pasta do cliente no Drive para organizar os takes automaticamente.
+    </p>
+    <div class="field">
+      <label>Link da pasta no Drive</label>
+      <input type="url" id="drive-url" placeholder="https://drive.google.com/drive/folders/..."/>
+    </div>
+    <div class="field">
+      <label>Selecione o registro</label>
+      <select id="registro-sel">
+        <option value="">Selecione um registro salvo...</option>
+      </select>
+    </div>
+    <div id="drive-preview" style="display:none;margin-bottom:12px;"></div>
+    <button class="submit-btn" id="drive-btn" onclick="organizarDrive()" style="margin-bottom:0">
+      Organizar pastas no Drive
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ⚠️ SUBSTITUA PELA URL DO SEU APPS SCRIPT APÓS O DEPLOY
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxERAcfrL3qMztWyiO1ucwZo8Zv8rP5bi2WynxOPMd7v9u9mz8HFUtP7fM928volAnK/exec";
+
+const FLAGS = ["Pasta extra","Drone","B-roll","Áudio separado","Requer revisão"];
+let mode = "rapido", videos = [], registros = [], vCount = 0, cCount = 0;
+
+// Carrega clientes da planilha ao iniciar
+async function loadClientes() {
+  try {
+    const res = await fetch(SCRIPT_URL);
+    const data = await res.json();
+    const sel = document.getElementById("projeto");
+    (data.clientes || []).forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = opt.textContent = c;
+      sel.appendChild(opt);
+    });
+  } catch (_) {}
+}
+loadClientes();
+
+function getVal(id) { const el = document.getElementById(id); return el ? el.value : ""; }
+
+function syncInputs() {
+  videos.forEach(v => {
+    v.nome = getVal("nome-" + v.id);
+    v.obs  = getVal("obs-"  + v.id);
+    if (mode === "rapido") {
+      v.ini = sanitizeTake(getVal("ini-" + v.id));
+      v.fim = sanitizeTake(getVal("fim-" + v.id));
+    } else {
+      (v.cenas||[]).forEach(c => {
+        c.nome = getVal("cnome-" + c.id);
+        c.ini  = sanitizeTake(getVal("cini-"  + c.id));
+        c.fim  = sanitizeTake(getVal("cfim-"  + c.id));
+        c.obs  = getVal("cobs-"  + c.id);
+      });
+    }
+  });
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById("btn-rapido").classList.toggle("active", m === "rapido");
+  document.getElementById("btn-detalhado").classList.toggle("active", m === "detalhado");
+  videos = []; vCount = 0; cCount = 0; render();
+}
+
+function newVideo() { vCount++; return { id:vCount, nome:"", obs:"", ini:"", fim:"", status:"", flags:[], cenas: mode==="detalhado"?[newCena()]:[] }; }
+function newCena()  { cCount++; return { id:cCount, nome:"", ini:"", fim:"", obs:"" }; }
+
+function addVideo()      { syncInputs(); videos.push(newVideo()); render(); }
+function removeVideo(id) { syncInputs(); videos = videos.filter(v=>v.id!==id); render(); }
+function addCena(vid)    { syncInputs(); videos = videos.map(v=>v.id===vid?{...v,cenas:[...v.cenas,newCena()]}:v); render(); }
+function removeCena(v,c) { syncInputs(); videos = videos.map(x=>x.id===v?{...x,cenas:x.cenas.filter(k=>k.id!==c)}:x); render(); }
+
+function setStatus(vid, s) {
+  syncInputs();
+  videos = videos.map(v => v.id===vid ? {...v, status: v.status===s?"":s} : v);
+  render();
+}
+
+function toggleFlag(vid, flag) {
+  syncInputs();
+  videos = videos.map(v => {
+    if (v.id!==vid) return v;
+    const flags = v.flags.includes(flag) ? v.flags.filter(f=>f!==flag) : [...v.flags,flag];
+    return {...v, flags};
+  });
+  render();
+}
+
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function sanitizeTake(v) { return (v||"").replace(/\.xml$/i,"").trim(); }
+
+function validateTake(el) {
+  const hasXml = /\.xml$/i.test(el.value.trim());
+  el.style.borderColor = hasXml ? "var(--amber-border)" : "";
+  let warn = el.parentElement.querySelector(".xml-warn");
+  if (hasXml) {
+    if (!warn) {
+      warn = document.createElement("span");
+      warn.className = "xml-warn";
+      warn.style.cssText = "font-size:11px;color:var(--amber-text);display:block;margin-top:3px;";
+      warn.textContent = "Arquivo XML — será removido automaticamente ao salvar";
+      el.parentElement.appendChild(warn);
+    }
+  } else if (warn) { warn.remove(); }
+}
+
+function renderStatusBtns(v) {
+  return `<div class="status-row">
+    <button class="s-btn ${v.status==="concluido"?"ok":""}"  onclick="setStatus(${v.id},'concluido')">Concluído</button>
+    <button class="s-btn ${v.status==="pendente"?"pend":""}" onclick="setStatus(${v.id},'pendente')">Pendente</button>
+  </div>`;
+}
+
+function renderFlags(v) {
+  return FLAGS.map(f=>`<span class="flag-chip ${v.flags.includes(f)?"active":""}" onclick="toggleFlag(${v.id},'${f}')">${f}</span>`).join("");
+}
+
+function renderRapido(v,i) {
+  return `<div class="video-card">
+    <div class="card-header"><span class="card-label">Vídeo ${i+1}</span><button class="del-btn" onclick="removeVideo(${v.id})">×</button></div>
+    <div class="field"><label>Nome / tema</label><input type="text" id="nome-${v.id}" value="${esc(v.nome)}" placeholder="ex: Depoimento, Produto..."/></div>
+    <div class="row2">
+      <div class="field"><label>Primeiro take</label><input type="text" id="ini-${v.id}" value="${esc(v.ini)}" placeholder="C0001" onblur="validateTake(this)"/></div>
+      <div class="field"><label>Último take</label><input type="text" id="fim-${v.id}" value="${esc(v.fim)}" placeholder="C0023" onblur="validateTake(this)"/></div>
+    </div>
+    ${renderStatusBtns(v)}
+    <div class="flags-lbl">Atenções</div>
+    <div class="flags-grid">${renderFlags(v)}</div>
+    <div class="field"><label>Observações</label><textarea id="obs-${v.id}" placeholder="Notas...">${esc(v.obs)}</textarea></div>
+  </div>`;
+}
+
+function renderDetalhado(v,i) {
+  const cenasHtml = v.cenas.map((c,ci)=>`
+    <div class="cena-block">
+      <div class="cena-hdr"><span class="cena-lbl">Cena ${ci+1}</span>${v.cenas.length>1?`<button class="cena-del" onclick="removeCena(${v.id},${c.id})">×</button>`:""}</div>
+      <div class="field"><label>Nome da cena</label><input type="text" id="cnome-${c.id}" value="${esc(c.nome)}" placeholder="ex: Close produto..."/></div>
+      <div class="row2">
+        <div class="field"><label>Take inicial</label><input type="text" id="cini-${c.id}" value="${esc(c.ini)}" placeholder="C0001" onblur="validateTake(this)"/></div>
+        <div class="field"><label>Take final</label><input type="text" id="cfim-${c.id}" value="${esc(c.fim)}" placeholder="C0008" onblur="validateTake(this)"/></div>
+      </div>
+      <div class="field"><label>Obs. da cena</label><input type="text" id="cobs-${c.id}" value="${esc(c.obs)}" placeholder="take 3 aprovado..."/></div>
+    </div>`).join("");
+  return `<div class="video-card">
+    <div class="card-header"><span class="card-label">Vídeo ${i+1}</span><button class="del-btn" onclick="removeVideo(${v.id})">×</button></div>
+    <div class="field"><label>Nome / tema</label><input type="text" id="nome-${v.id}" value="${esc(v.nome)}" placeholder="ex: Depoimento, Produto..."/></div>
+    ${cenasHtml}
+    <button class="add-cena-btn" onclick="addCena(${v.id})">+ adicionar cena</button>
+    ${renderStatusBtns(v)}
+    <div class="flags-lbl">Atenções</div>
+    <div class="flags-grid">${renderFlags(v)}</div>
+    <div class="field" style="margin-top:4px"><label>Observações gerais</label><textarea id="obs-${v.id}" placeholder="Notas gerais...">${esc(v.obs)}</textarea></div>
+  </div>`;
+}
+
+function render() {
+  const c = document.getElementById("videos-container");
+  c.innerHTML = videos.length ? videos.map((v,i)=>mode==="rapido"?renderRapido(v,i):renderDetalhado(v,i)).join("") : "";
+}
+
+function showToast(msg, dur=2800) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), dur);
+}
+
+async function salvar() {
+  syncInputs();
+  const projeto     = document.getElementById("projeto").value;
+  const responsavel = document.getElementById("responsavel").value.trim();
+  if (!projeto)       { showToast("Selecione o projeto."); return; }
+  if (!videos.length) { showToast("Adicione pelo menos um vídeo."); return; }
+
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  btn.textContent = "Salvando...";
+
+  const agora = new Date();
+  const payload = {
+    projeto, responsavel,
+    data: agora.toLocaleDateString("pt-BR"),
+    hora: agora.toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"}),
+    mode,
+    vids: JSON.parse(JSON.stringify(videos))
+  };
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    registros.unshift(payload);
+    renderLog();
+    videos = []; vCount = 0; cCount = 0; render();
+    document.getElementById("projeto").value = "";
+    document.getElementById("responsavel").value = "";
+    showToast("Registro salvo no Sheets!");
+      atualizarSelectRegistros();
+  } catch (_) {
+    showToast("Erro ao salvar. Tente novamente.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Salvar registro";
+  }
+}
+
+function statusLabel(s) {
+  if (s==="concluido") return '<span class="pill-ok">Concluído</span>';
+  if (s==="pendente")  return '<span class="pill-pend">Pendente</span>';
+  return "";
+}
+
+function renderLog() {
+  const c = document.getElementById("log-container");
+  if (!registros.length) { c.innerHTML = '<p class="empty">Nenhum registro ainda</p>'; return; }
+  c.innerHTML = registros.map(r=>`
+    <div class="log-group">
+      <div class="log-meta">
+        <span>${r.projeto} — ${r.data} às ${r.hora}${r.responsavel?" · "+r.responsavel:""}</span>
+        <span class="mode-tag">${r.mode==="rapido"?"Rápido":"Detalhado"}</span>
+      </div>
+      ${r.vids.map(v=>`
+        <div class="log-card">
+          <div class="log-top"><span class="log-nome">${v.nome||"Sem nome"}</span>${statusLabel(v.status)}</div>
+          ${r.mode==="rapido"
+            ?`<div class="log-range">Takes: ${v.ini||"—"} → ${v.fim||"—"}</div>`
+            :(v.cenas||[]).map(c=>`<div class="log-cena"><strong>${c.nome||"Cena"}</strong> · ${c.ini||"—"} → ${c.fim||"—"}${c.obs?" — "+c.obs:""}</div>`).join("")
+          }
+          ${v.flags&&v.flags.length?`<div class="log-flags">${v.flags.map(f=>`<span class="log-flag">${f}</span>`).join("")}</div>`:""}
+          ${v.obs?`<div class="log-obs">${v.obs}</div>`:""}
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+
+// ── PIN ──────────────────────────────────────────────────
+const PIN_CORRETO = "1234"; // altere para o PIN desejado
+let pinAtual = "";
+
+function pinPress(n) {
+  if (pinAtual.length >= PIN_CORRETO.length) return;
+  pinAtual += n;
+  atualizarDots();
+  if (pinAtual.length === PIN_CORRETO.length) pinSubmit();
+}
+
+function pinClear() {
+  pinAtual = pinAtual.slice(0, -1);
+  atualizarDots();
+  document.getElementById("pin-error").textContent = "";
+}
+
+function atualizarDots() {
+  for (let i = 0; i < PIN_CORRETO.length; i++) {
+    document.getElementById("dot-" + i).classList.toggle("filled", i < pinAtual.length);
+  }
+}
+
+function pinSubmit() {
+  if (pinAtual === PIN_CORRETO) {
+    document.getElementById("pin-overlay").style.display = "none";
+  } else {
+    document.getElementById("pin-error").textContent = "PIN incorreto. Tente novamente.";
+    pinAtual = "";
+    atualizarDots();
+  }
+}
+
+addVideo();
+
+// ── Organização do Drive ──────────────────────────────────
+
+function atualizarSelectRegistros() {
+  const sel = document.getElementById("registro-sel");
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Selecione um registro salvo...</option>';
+  registros.forEach((r, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = `${r.projeto} — ${r.data} às ${r.hora}${r.responsavel ? " · " + r.responsavel : ""}`;
+    sel.appendChild(opt);
+  });
+  if (atual !== "") sel.value = atual;
+  sel.onchange = previewRegistro;
+}
+
+function previewRegistro() {
+  const sel   = document.getElementById("registro-sel");
+  const idx   = sel.value;
+  const prev  = document.getElementById("drive-preview");
+  if (idx === "") { prev.style.display = "none"; return; }
+  const r = registros[parseInt(idx)];
+  prev.style.display = "block";
+  prev.innerHTML = r.vids.map(v => `
+    <div class="log-card" style="margin-bottom:6px;">
+      <div class="log-top">
+        <span class="log-nome">${v.nome || "Sem nome"}</span>
+        ${v.status === "concluido" ? '<span class="pill-ok">Concluído</span>' : v.status === "pendente" ? '<span class="pill-pend">Pendente</span>' : ""}
+      </div>
+      <div class="log-range">Takes: ${v.ini || "—"} → ${v.fim || "—"}</div>
+      ${v.obs ? `<div class="log-obs">${v.obs}</div>` : ""}
+    </div>
+  `).join("");
+}
+
+async function organizarDrive() {
+  const url = document.getElementById("drive-url").value.trim();
+  const idx = document.getElementById("registro-sel").value;
+  if (!url)        { showToast("Cole o link da pasta do Drive."); return; }
+  if (idx === "")  { showToast("Selecione um registro."); return; }
+
+  const r   = registros[parseInt(idx)];
+  const btn = document.getElementById("drive-btn");
+  btn.disabled    = true;
+  btn.textContent = "Organizando...";
+
+  try {
+    const res  = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ folderUrl: url, vids: r.vids })
+    });
+    const data = await res.json();
+
+    if (data.status === "ok") {
+      const total = (data.resultados || []).reduce((s, r) => s + r.arquivos, 0);
+      showToast(`Pronto! ${total} arquivo(s) organizados em ${data.resultados.length} pasta(s).`, 4000);
+      document.getElementById("drive-url").value = "";
+      document.getElementById("registro-sel").value = "";
+      document.getElementById("drive-preview").style.display = "none";
+    } else {
+      showToast("Erro: " + (data.message || "tente novamente."));
+    }
+  } catch (_) {
+    showToast("Erro ao conectar. Tente novamente.");
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = "Organizar pastas no Drive";
+  }
+}
+
+</script>
+</body>
+</html>
